@@ -17,6 +17,29 @@ function GoogleDriveViewer() {
   const [notification, setNotification] = useState('');
   const [isRoaring, setIsRoaring] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Detectar cambios en el tamaño de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 1024);
+      
+      // Auto-collapse sidebar en móvil
+      if (width < 768) {
+        setSidebarCollapsed(true);
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Ejecutar al montar
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Colores principales
   const colors = {
@@ -44,11 +67,12 @@ function GoogleDriveViewer() {
       display: 'flex',
       flexDirection: 'column',
       transition: 'all 0.3s ease',
+      position: 'relative',
     },
 
     header: {
       background: `linear-gradient(135deg, ${colors.primaryOrange} 0%, ${colors.secondaryOrange} 100%)`,
-      padding: '1rem 2rem',
+      padding: isMobile ? '0.75rem 1rem' : '1rem 2rem',
       boxShadow: `0 4px 20px ${colors.shadow}`,
       position: 'sticky',
       top: 0,
@@ -67,34 +91,47 @@ function GoogleDriveViewer() {
     logo: {
       display: 'flex',
       alignItems: 'center',
-      gap: '1rem',
+      gap: isMobile ? '0.5rem' : '1rem',
       color: 'white',
     },
 
     lionIcon: {
-      fontSize: '2.5rem',
+      fontSize: isMobile ? '1.8rem' : '2.5rem',
       animation: isRoaring ? 'lionRoar 1s ease-in-out' : 'lionRoar 4s ease-in-out infinite',
       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
     },
 
     logoText: {
-      fontSize: '1.8rem',
+      fontSize: isMobile ? '1.2rem' : '1.8rem',
       fontWeight: '700',
       letterSpacing: '-0.02em',
       margin: 0,
     },
 
     logoSubtext: {
-      fontSize: '0.85rem',
+      fontSize: isMobile ? '0.7rem' : '0.85rem',
       opacity: 0.9,
       fontWeight: '400',
       margin: 0,
+      display: isMobile ? 'none' : 'block',
     },
 
     headerActions: {
       display: 'flex',
-      gap: '1rem',
+      gap: isMobile ? '0.5rem' : '1rem',
       alignItems: 'center',
+    },
+
+    mobileMenuButton: {
+      display: isMobile ? 'block' : 'none',
+      background: 'rgba(255, 255, 255, 0.2)',
+      border: 'none',
+      color: 'white',
+      padding: '0.5rem',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '1.2rem',
+      backdropFilter: 'blur(10px)',
     },
 
     mainContainer: {
@@ -103,11 +140,14 @@ function GoogleDriveViewer() {
       maxWidth: '1400px',
       margin: '0 auto',
       width: '100%',
-      height: 'calc(100vh - 80px)',
+      height: isMobile ? 'calc(100vh - 64px)' : 'calc(100vh - 80px)',
+      position: 'relative',
     },
 
     sidebar: {
-      width: sidebarCollapsed ? '60px' : '380px',
+      width: isMobile 
+        ? (sidebarOpen ? '100%' : '0') 
+        : (sidebarCollapsed ? '60px' : (isTablet ? '300px' : '380px')),
       background: isDarkMode 
         ? `linear-gradient(180deg, ${colors.darkCard} 0%, rgba(26, 18, 9, 0.9) 100%)`
         : `linear-gradient(180deg, ${colors.lightCard} 0%, rgba(250, 247, 242, 0.9) 100%)`,
@@ -116,20 +156,35 @@ function GoogleDriveViewer() {
       display: 'flex',
       flexDirection: 'column',
       boxShadow: `4px 0 20px ${colors.shadow}`,
-      position: 'relative',
+      position: isMobile ? 'fixed' : 'relative',
+      top: isMobile ? 0 : 'auto',
+      left: isMobile ? 0 : 'auto',
+      height: isMobile ? '100vh' : 'auto',
+      zIndex: isMobile ? 200 : 'auto',
       overflow: 'hidden',
+    },
+
+    sidebarOverlay: {
+      display: isMobile && sidebarOpen ? 'block' : 'none',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.5)',
+      zIndex: 150,
     },
 
     sidebarToggle: {
       position: 'absolute',
       top: '1rem',
-      right: '-12px',
+      right: isMobile ? '1rem' : '-12px',
       background: `linear-gradient(135deg, ${colors.primaryOrange} 0%, ${colors.secondaryOrange} 100%)`,
       border: 'none',
       borderRadius: '50%',
       width: '24px',
       height: '24px',
-      display: 'flex',
+      display: isMobile ? 'none' : 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       cursor: 'pointer',
@@ -140,21 +195,39 @@ function GoogleDriveViewer() {
       transition: 'all 0.2s ease',
     },
 
+    mobileCloseButton: {
+      display: isMobile ? 'block' : 'none',
+      position: 'absolute',
+      top: '1rem',
+      right: '1rem',
+      background: `linear-gradient(135deg, ${colors.primaryOrange} 0%, ${colors.secondaryOrange} 100%)`,
+      border: 'none',
+      borderRadius: '50%',
+      width: '32px',
+      height: '32px',
+      color: 'white',
+      fontSize: '1.2rem',
+      cursor: 'pointer',
+      zIndex: 10,
+    },
+
     sidebarContent: {
-      padding: sidebarCollapsed ? '1rem 0.5rem' : '2rem 1.5rem',
+      padding: isMobile 
+        ? '3rem 1rem 1rem 1rem'
+        : (sidebarCollapsed ? '1rem 0.5rem' : (isTablet ? '1.5rem 1rem' : '2rem 1.5rem')),
       flex: 1,
       overflowY: 'auto',
       transition: 'all 0.3s ease',
     },
 
     section: {
-      marginBottom: '2rem',
-      opacity: sidebarCollapsed ? 0 : 1,
+      marginBottom: isMobile ? '1.5rem' : '2rem',
+      opacity: (sidebarCollapsed && !isMobile) ? 0 : 1,
       transition: 'opacity 0.3s ease',
     },
 
     sectionTitle: {
-      fontSize: '1.1rem',
+      fontSize: isMobile ? '1rem' : '1.1rem',
       fontWeight: '600',
       color: isDarkMode ? colors.accentOrange : colors.primaryOrange,
       marginBottom: '1rem',
@@ -169,7 +242,7 @@ function GoogleDriveViewer() {
         : `linear-gradient(145deg, ${colors.lightCard} 0%, rgba(250, 247, 242, 0.7) 100%)`,
       border: `1px solid ${colors.border}`,
       borderRadius: '16px',
-      padding: '1.5rem',
+      padding: isMobile ? '1rem' : '1.5rem',
       marginBottom: '1rem',
       boxShadow: `0 4px 12px ${colors.shadow}`,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -190,8 +263,8 @@ function GoogleDriveViewer() {
 
     input: {
       width: '100%',
-      padding: '0.8rem 1rem',
-      fontSize: '0.9rem',
+      padding: isMobile ? '0.75rem' : '0.8rem 1rem',
+      fontSize: isMobile ? '16px' : '0.9rem', // 16px previene zoom en iOS
       border: `1px solid ${colors.border}`,
       borderRadius: '10px',
       background: isDarkMode 
@@ -207,8 +280,8 @@ function GoogleDriveViewer() {
       background: `linear-gradient(135deg, ${colors.primaryOrange} 0%, ${colors.secondaryOrange} 100%)`,
       color: 'white',
       border: 'none',
-      padding: '0.8rem 1.5rem',
-      fontSize: '0.9rem',
+      padding: isMobile ? '0.75rem 1rem' : '0.8rem 1.5rem',
+      fontSize: isMobile ? '0.8rem' : '0.9rem',
       fontWeight: '500',
       borderRadius: '10px',
       cursor: 'pointer',
@@ -219,6 +292,7 @@ function GoogleDriveViewer() {
       gap: '0.5rem',
       justifyContent: 'center',
       width: '100%',
+      minHeight: '44px', // Mínimo para touch targets
     },
 
     secondaryButton: {
@@ -227,8 +301,8 @@ function GoogleDriveViewer() {
         : `linear-gradient(135deg, ${colors.lightCard} 0%, rgba(250, 247, 242, 0.8) 100%)`,
       color: isDarkMode ? colors.accentOrange : colors.primaryOrange,
       border: `1px solid ${colors.border}`,
-      padding: '0.8rem 1.5rem',
-      fontSize: '0.9rem',
+      padding: isMobile ? '0.5rem' : '0.8rem 1.5rem',
+      fontSize: isMobile ? '1rem' : '0.9rem',
       fontWeight: '500',
       borderRadius: '10px',
       cursor: 'pointer',
@@ -237,15 +311,16 @@ function GoogleDriveViewer() {
       alignItems: 'center',
       gap: '0.5rem',
       justifyContent: 'center',
+      minHeight: '44px',
     },
 
     successAlert: {
       background: `linear-gradient(135deg, ${colors.primaryOrange} 0%, ${colors.secondaryOrange} 100%)`,
       color: 'white',
-      padding: '1rem',
+      padding: isMobile ? '0.75rem' : '1rem',
       borderRadius: '12px',
       marginBottom: '1rem',
-      fontSize: '0.9rem',
+      fontSize: isMobile ? '0.8rem' : '0.9rem',
       display: 'flex',
       alignItems: 'center',
       gap: '0.5rem',
@@ -259,18 +334,21 @@ function GoogleDriveViewer() {
       background: isDarkMode 
         ? `linear-gradient(135deg, ${colors.darkBg} 0%, rgba(13, 13, 13, 0.8) 100%)`
         : `linear-gradient(135deg, ${colors.lightBg} 0%, rgba(250, 247, 242, 0.8) 100%)`,
+      width: isMobile ? '100%' : 'auto',
     },
 
     contentHeader: {
-      padding: '1.5rem 2rem',
+      padding: isMobile ? '1rem' : '1.5rem 2rem',
       borderBottom: `1px solid ${colors.border}`,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '0.5rem',
     },
 
     contentTitle: {
-      fontSize: '1.3rem',
+      fontSize: isMobile ? '1.1rem' : '1.3rem',
       fontWeight: '600',
       color: isDarkMode ? colors.accentOrange : colors.primaryOrange,
       margin: 0,
@@ -281,7 +359,7 @@ function GoogleDriveViewer() {
 
     contentBody: {
       flex: 1,
-      padding: '1rem',
+      padding: isMobile ? '0.5rem' : '1rem',
       display: 'flex',
       flexDirection: 'column',
     },
@@ -290,11 +368,11 @@ function GoogleDriveViewer() {
       width: '100%',
       height: '100%',
       border: 'none',
-      borderRadius: '12px',
+      borderRadius: isMobile ? '8px' : '12px',
       background: isDarkMode ? colors.darkCard : colors.lightCard,
       boxShadow: `0 8px 24px ${colors.shadow}`,
       flex: 1,
-      minHeight: '500px',
+      minHeight: isMobile ? '400px' : '500px',
     },
 
     emptyState: {
@@ -306,25 +384,28 @@ function GoogleDriveViewer() {
       background: isDarkMode 
         ? `linear-gradient(135deg, rgba(26, 18, 9, 0.3) 0%, rgba(13, 13, 13, 0.5) 100%)`
         : `linear-gradient(135deg, rgba(250, 247, 242, 0.3) 0%, rgba(240, 240, 240, 0.5) 100%)`,
-      borderRadius: '12px',
+      borderRadius: isMobile ? '8px' : '12px',
       border: `2px dashed ${colors.border}`,
       color: isDarkMode ? colors.secondaryOrange : colors.primaryOrange,
       textAlign: 'center',
-      padding: '3rem',
+      padding: isMobile ? '2rem 1rem' : '3rem',
+      margin: isMobile ? '0.5rem' : '0',
     },
 
     notification: {
       position: 'fixed',
-      top: '100px',
-      right: '2rem',
+      top: isMobile ? '80px' : '100px',
+      right: isMobile ? '1rem' : '2rem',
+      left: isMobile ? '1rem' : 'auto',
       background: `linear-gradient(135deg, ${colors.primaryOrange} 0%, ${colors.secondaryOrange} 100%)`,
       color: 'white',
-      padding: '1rem 1.5rem',
+      padding: isMobile ? '0.75rem' : '1rem 1.5rem',
       borderRadius: '12px',
       boxShadow: `0 8px 24px ${colors.shadow}`,
       zIndex: 1000,
-      maxWidth: '300px',
+      maxWidth: isMobile ? 'calc(100% - 2rem)' : '300px',
       animation: 'slideInRight 0.3s ease-out',
+      fontSize: isMobile ? '0.8rem' : '0.9rem',
     },
 
     loadingSpinner: {
@@ -367,6 +448,13 @@ function GoogleDriveViewer() {
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
+    }
+    
+    /* Responsive utilities */
+    @media (max-width: 767px) {
+      .mobile-scroll {
+        -webkit-overflow-scrolling: touch;
+      }
     }
   `;
 
@@ -420,6 +508,11 @@ function GoogleDriveViewer() {
           const copied = await copyFile(originalId, newFileName);
           setCopiedFileId(copied.id);
           setCopiedFileName(newFileName);
+          
+          // Cerrar sidebar en móvil después de seleccionar
+          if (isMobile) {
+            setSidebarOpen(false);
+          }
         }
       })
       .build();
@@ -519,6 +612,9 @@ function GoogleDriveViewer() {
       if (permissionResponse.ok) {
         setNotification(`✅ PDF enviado a ${shareEmail}`);
         setShareEmail('');
+        if (isMobile) {
+          setSidebarOpen(false);
+        }
       } else {
         setNotification('❌ Error al enviar PDF');
       }
@@ -534,10 +630,22 @@ function GoogleDriveViewer() {
     <div style={styles.app}>
       <style>{keyframes}</style>
       
+      {/* Overlay para móvil */}
+      <div 
+        style={styles.sidebarOverlay}
+        onClick={() => setSidebarOpen(false)}
+      />
+      
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerContent}>
           <div style={styles.logo}>
+            <button 
+              style={styles.mobileMenuButton}
+              onClick={() => setSidebarOpen(true)}
+            >
+              ☰
+            </button>
             <div style={styles.lionIcon}>🦁</div>
             <div>
               <h1 style={styles.logoText}>Fortress8</h1>
@@ -567,8 +675,15 @@ function GoogleDriveViewer() {
             {sidebarCollapsed ? '→' : '←'}
           </button>
           
-          <div style={styles.sidebarContent}>
-            {!sidebarCollapsed && (
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            style={styles.mobileCloseButton}
+          >
+            ×
+          </button>
+          
+          <div style={styles.sidebarContent} className="mobile-scroll">
+            {((!sidebarCollapsed && !isMobile) || (isMobile && sidebarOpen)) && (
               <>
                 {/* Client Configuration */}
                 <div style={styles.section}>
@@ -666,14 +781,14 @@ function GoogleDriveViewer() {
             </h2>
             {copiedFileId && (
               <div style={{ 
-                fontSize: '0.9rem', 
+                fontSize: isMobile ? '0.8rem' : '0.9rem', 
                 color: isDarkMode ? colors.secondaryOrange : colors.primaryOrange,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
                 <div style={styles.statusIndicator}></div>
-                Editando archivo
+                {isMobile ? 'Editando' : 'Editando archivo'}
               </div>
             )}
           </div>
@@ -687,12 +802,19 @@ function GoogleDriveViewer() {
               />
             ) : (
               <div style={styles.emptyState}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🦁</div>
-                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem' }}>
+                <div style={{ fontSize: isMobile ? '3rem' : '4rem', marginBottom: '1rem' }}>🦁</div>
+                <h3 style={{ 
+                  margin: '0 0 0.5rem 0', 
+                  fontSize: isMobile ? '1rem' : '1.2rem' 
+                }}>
                   Bienvenido a Fortress8
                 </h3>
-                <p style={{ margin: 0, opacity: 0.8 }}>
-                  Selecciona un archivo de Google Drive para comenzar a editarlo
+                <p style={{ 
+                  margin: 0, 
+                  opacity: 0.8,
+                  fontSize: isMobile ? '0.8rem' : '0.9rem'
+                }}>
+                  {isMobile ? 'Toca el menú para comenzar' : 'Selecciona un archivo de Google Drive para comenzar a editarlo'}
                 </p>
               </div>
             )}
